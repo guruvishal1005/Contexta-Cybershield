@@ -1,0 +1,67 @@
+{
+  "id": "data_exfiltration",
+  "name": "Data Exfiltration Response",
+  "description": "Response playbook for confirmed or suspected data exfiltration incidents. Focuses on containment, evidence collection, and regulatory notification.",
+  "trigger_conditions": {
+    "severity": ["critical", "high"],
+    "attack_types": ["Data Exfiltration", "Data Breach"],
+    "forensics_flags": ["data_exfiltration_evidence"]
+  },
+  "steps": [
+    {
+      "id": 1,
+      "name": "Block exfiltration channels",
+      "type": "automated",
+      "responsible_team": "Network Team",
+      "timeout_minutes": 15,
+      "escalate_on_timeout": true,
+      "description": "Block outbound connections to identified exfiltration endpoints. Enable DLP in block mode for affected network segments."
+    },
+    {
+      "id": 2,
+      "name": "Identify data scope",
+      "type": "manual",
+      "responsible_team": "Forensics Team",
+      "timeout_minutes": 120,
+      "escalate_on_timeout": false,
+      "description": "Determine what data was accessed and potentially exfiltrated. Correlate DLP logs, proxy logs, and endpoint telemetry."
+    },
+    {
+      "id": 3,
+      "name": "Preserve evidence chain",
+      "type": "manual",
+      "responsible_team": "Forensics Team",
+      "timeout_minutes": 60,
+      "escalate_on_timeout": false,
+      "description": "Capture full packet captures, memory dumps, and timeline artifacts. Maintain chain of custody documentation."
+    },
+    {
+      "id": 4,
+      "name": "Assess regulatory requirements",
+      "type": "manual",
+      "responsible_team": "Legal / Compliance",
+      "timeout_minutes": 240,
+      "escalate_on_timeout": true,
+      "description": "Determine which regulatory frameworks apply (GDPR, HIPAA, PCI-DSS). Identify notification deadlines and required parties."
+    },
+    {
+      "id": 5,
+      "name": "Notify stakeholders",
+      "type": "manual",
+      "responsible_team": "Executive Leadership",
+      "timeout_minutes": 60,
+      "escalate_on_timeout": true,
+      "description": "Brief CISO, legal counsel, and affected business unit leadership. Prepare public disclosure statement if required."
+    },
+    {
+      "id": 6,
+      "name": "Remediate access",
+      "type": "manual",
+      "responsible_team": "Security Engineering",
+      "timeout_minutes": 120,
+      "escalate_on_timeout": false,
+      "description": "Revoke compromised credentials. Patch exploited vulnerabilities. Implement additional monitoring on affected data stores."
+    }
+  ],
+  "estimated_total_minutes": 615
+}

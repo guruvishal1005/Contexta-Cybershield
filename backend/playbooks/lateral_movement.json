@@ -1,0 +1,58 @@
+{
+  "id": "lateral_movement",
+  "name": "Lateral Movement Containment",
+  "description": "Response playbook for incidents where lateral movement has been detected. Focuses on isolating compromised segments and preventing further spread.",
+  "trigger_conditions": {
+    "severity": ["critical", "high", "medium"],
+    "attack_types": ["Lateral Movement", "APT", "Insider Threat"],
+    "forensics_flags": ["lateral_movement_evidence"]
+  },
+  "steps": [
+    {
+      "id": 1,
+      "name": "Map affected network segments",
+      "type": "manual",
+      "responsible_team": "SOC Analyst",
+      "timeout_minutes": 30,
+      "escalate_on_timeout": false,
+      "description": "Use the Digital Twin to identify all reachable nodes from the compromised system. Map the blast radius."
+    },
+    {
+      "id": 2,
+      "name": "Implement emergency segmentation",
+      "type": "automated",
+      "responsible_team": "Network Team",
+      "timeout_minutes": 20,
+      "escalate_on_timeout": true,
+      "description": "Deploy emergency ACLs to segment affected network zones. Block inter-VLAN routing for compromised segments."
+    },
+    {
+      "id": 3,
+      "name": "Reset credentials in affected zone",
+      "type": "automated",
+      "responsible_team": "Identity Team",
+      "timeout_minutes": 30,
+      "escalate_on_timeout": true,
+      "description": "Force password reset for all accounts that authenticated in the compromised zone. Revoke active sessions and tokens."
+    },
+    {
+      "id": 4,
+      "name": "Hunt for persistence",
+      "type": "manual",
+      "responsible_team": "Threat Hunting Team",
+      "timeout_minutes": 120,
+      "escalate_on_timeout": false,
+      "description": "Scan all systems in the blast radius for persistence mechanisms: scheduled tasks, services, registry keys, web shells."
+    },
+    {
+      "id": 5,
+      "name": "Validate containment",
+      "type": "manual",
+      "responsible_team": "SOC Analyst",
+      "timeout_minutes": 60,
+      "escalate_on_timeout": false,
+      "description": "Verify no new lateral movement indicators. Confirm all C2 channels are blocked. Run follow-up Digital Twin simulation."
+    }
+  ],
+  "estimated_total_minutes": 260
+}

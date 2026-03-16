@@ -1,0 +1,75 @@
+{
+  "id": "ransomware_response",
+  "name": "Ransomware Incident Response",
+  "description": "Comprehensive response plan for ransomware incidents targeting critical infrastructure. Covers containment, evidence preservation, eradication, and recovery.",
+  "trigger_conditions": {
+    "severity": ["critical", "high"],
+    "attack_types": ["Ransomware", "Encryption"]
+  },
+  "steps": [
+    {
+      "id": 1,
+      "name": "Isolate affected systems",
+      "type": "manual",
+      "responsible_team": "Network Team",
+      "timeout_minutes": 30,
+      "escalate_on_timeout": true,
+      "description": "Immediately segment the affected host from the network. Disable switch ports or VLAN assignments. Do NOT power off — preserve volatile memory."
+    },
+    {
+      "id": 2,
+      "name": "Capture forensic evidence",
+      "type": "manual",
+      "responsible_team": "Forensics Team",
+      "timeout_minutes": 60,
+      "escalate_on_timeout": false,
+      "description": "Take memory dumps and disk images of affected systems. Document the ransom note and any IOCs visible on screen."
+    },
+    {
+      "id": 3,
+      "name": "Identify ransomware variant",
+      "type": "manual",
+      "responsible_team": "Threat Intel Team",
+      "timeout_minutes": 45,
+      "escalate_on_timeout": false,
+      "description": "Submit samples to sandbox for analysis. Check ID Ransomware and NoMoreRansom for known decryptors."
+    },
+    {
+      "id": 4,
+      "name": "Assess lateral movement",
+      "type": "manual",
+      "responsible_team": "SOC Analyst",
+      "timeout_minutes": 30,
+      "escalate_on_timeout": true,
+      "description": "Check for evidence of lateral movement to other hosts. Review authentication logs, SMB traffic, and RDP sessions."
+    },
+    {
+      "id": 5,
+      "name": "Block command and control",
+      "type": "automated",
+      "responsible_team": "Network Team",
+      "timeout_minutes": 15,
+      "escalate_on_timeout": false,
+      "description": "Block identified C2 IPs and domains at firewall and DNS level. Enable DNS sinkholing for known C2 infrastructure."
+    },
+    {
+      "id": 6,
+      "name": "Restore from backups",
+      "type": "manual",
+      "responsible_team": "IT Operations",
+      "timeout_minutes": 240,
+      "escalate_on_timeout": true,
+      "description": "Verify backup integrity. Restore affected systems from the most recent clean backup. Test restored systems before reconnecting to network."
+    },
+    {
+      "id": 7,
+      "name": "Post-incident hardening",
+      "type": "manual",
+      "responsible_team": "Security Engineering",
+      "timeout_minutes": 120,
+      "escalate_on_timeout": false,
+      "description": "Patch the initial access vulnerability. Reset compromised credentials. Update endpoint detection signatures."
+    }
+  ],
+  "estimated_total_minutes": 540
+}
