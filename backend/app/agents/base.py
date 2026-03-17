@@ -25,7 +25,7 @@ class BaseAgent(ABC):
     def __init__(self, model: genai.GenerativeModel | None = None):
         _ensure_configured()
         self._model = model or genai.GenerativeModel(
-            "gemini-1.5-pro",
+            "gemini-2.5-flash-lite",
             generation_config=genai.GenerationConfig(
                 response_mime_type="application/json",
             ),

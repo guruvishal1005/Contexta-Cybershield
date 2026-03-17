@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     gemini_api_key: str = ""
     cve_collection_interval_hours: int = 6
     alembic_auto_migrate: bool = False
+    ml_service_url: str = ""
     log_level: str = "INFO"
     environment: str = "development"
 

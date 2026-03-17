@@ -92,7 +92,18 @@ app.include_router(demo_router)
 
 
 @app.get("/api/ml/health", tags=["ml"])
-async def ml_health_stub():
+async def ml_health_proxy():
+    """Proxy to ML microservice health when available, otherwise stub."""
+    ml_url = settings.ml_service_url
+    if ml_url:
+        import httpx
+        try:
+            async with httpx.AsyncClient(timeout=3.0) as client:
+                resp = await client.get(f"{ml_url}/health")
+                resp.raise_for_status()
+                return resp.json()
+        except Exception:
+            pass
     return {
         "status": "healthy",
         "model_version": "1.0.0-stub",
@@ -100,7 +111,7 @@ async def ml_health_stub():
         "f1Score": 0.91,
         "auc": 0.96,
         "drift": 0.02,
-        "note": "ML microservice not yet deployed",
+        "note": "ML microservice not yet deployed — stub response",
         "series": [],
     }
 

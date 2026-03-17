@@ -1,15 +1,17 @@
-from fastapi import APIRouter, Depends, Query, HTTPException
+from fastapi import APIRouter, Depends, Query, HTTPException, Response
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
 from app.models.cve import CVE
-from app.schemas.cve import CVEOut, CVEDetailOut, CVERiskOut, PaginatedCVEOut
+from app.schemas.cve import CVEOut, CVEDetailOut, CVERiskOut, CVECreate, PaginatedCVEOut
 from app.schemas.risk import BWVSResultOut, RiskSummaryOut, CVEScoreRequest, TopRisksResponse
 from app.risk_engine.bwvs import BWVSCalculator
+from app.risk_engine.ranking import PriorityRanker
 
 router = APIRouter()
 bwvs_calc = BWVSCalculator()
+priority_ranker = PriorityRanker()
 
 
 @router.get("/top10", response_model=TopRisksResponse)
@@ -104,6 +106,47 @@ async def list_cves(
     )
 
 
+@router.post("/cves", response_model=CVEDetailOut, status_code=201)
+async def create_cve(
+    data: CVECreate, db: AsyncSession = Depends(get_db),
+) -> CVEDetailOut:
+    existing = await db.execute(select(CVE).where(CVE.id == data.id))
+    if existing.scalar_one_or_none():
+        raise HTTPException(409, f"CVE {data.id} already exists")
+
+    bwvs_result = bwvs_calc.calculate(
+        cvss_score=data.cvss_score or 0.0,
+        exploit_maturity=data.exploit_maturity or "unknown",
+    )
+    bwvs_score = bwvs_result["bwvs_score"]
+
+    priority_rank = priority_ranker.calculate_priority(
+        bwvs_score=bwvs_score,
+        published_date=data.published_date,
+        epss_score=data.epss_score or 0.0,
+    )
+
+    cve = CVE(
+        id=data.id,
+        description=data.description,
+        cvss_score=data.cvss_score,
+        cvss_vector=data.cvss_vector,
+        epss_score=data.epss_score,
+        is_kev=data.is_kev,
+        published_date=data.published_date,
+        modified_date=data.modified_date,
+        affected_products=data.affected_products,
+        cwe_ids=data.cwe_ids,
+        exploit_available=data.exploit_available,
+        exploit_maturity=data.exploit_maturity,
+        bwvs_score=bwvs_score,
+        priority_rank=priority_rank,
+    )
+    db.add(cve)
+    await db.flush()
+    return CVEDetailOut.model_validate(cve)
+
+
 @router.get("/cves/{cve_id}", response_model=CVEDetailOut)
 async def get_cve(cve_id: str, db: AsyncSession = Depends(get_db)) -> CVEDetailOut:
     result = await db.execute(select(CVE).where(CVE.id == cve_id))
@@ -111,3 +154,16 @@ async def get_cve(cve_id: str, db: AsyncSession = Depends(get_db)) -> CVEDetailO
     if not cve:
         raise HTTPException(404, "CVE not found")
     return CVEDetailOut.model_validate(cve)
+
+
+@router.delete("/cves/{cve_id}", status_code=204)
+async def delete_cve(
+    cve_id: str, db: AsyncSession = Depends(get_db),
+) -> Response:
+    result = await db.execute(select(CVE).where(CVE.id == cve_id))
+    cve = result.scalar_one_or_none()
+    if not cve:
+        raise HTTPException(404, "CVE not found")
+    await db.delete(cve)
+    await db.flush()
+    return Response(status_code=204)

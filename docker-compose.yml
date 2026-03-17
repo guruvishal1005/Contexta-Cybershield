@@ -24,12 +24,25 @@ services:
     environment:
       # Container must use service name "postgres", not localhost
       DATABASE_URL: postgresql+asyncpg://contexta:contexta@postgres:5432/contexta
+      ML_SERVICE_URL: http://ml-service:8001
     depends_on:
       postgres:
         condition: service_healthy
     volumes:
       - ./backend:/app
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  ml-service:
+    build: ./ml_service
+    ports: []
+    volumes:
+      - ./ml_service/models:/app/models
+    env_file:
+      - ./ml_service/.env.example
+    depends_on:
+      - postgres
+    networks:
+      - default
 
 volumes:
   pgdata:

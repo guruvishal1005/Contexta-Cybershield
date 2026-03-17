@@ -69,6 +69,10 @@ class BWVSCalculator:
                 "exposure": round(exposure_norm, 4),
                 "asset_criticality": round(crit_norm, 4),
                 "business_impact": round(biz_norm, 4),
+                # ML_Threat: populated from ml_service.get_ml_threat_score()
+                # when ML_SERVICE_URL is set. Score is only used when
+                # confidence >= CONFIDENCE_THRESHOLD (0.6).
+                # Set to 0.0 here as fallback — ml_service.py handles the actual call.
                 "ml_threat": 0.0,
             },
         }

@@ -34,6 +34,21 @@ class CVEDetailOut(CVEOut):
     updated_at: datetime | None = None
 
 
+class CVECreate(_CamelBase):
+    id: str
+    description: str = ""
+    cvss_score: float | None = None
+    cvss_vector: str | None = None
+    epss_score: float | None = None
+    is_kev: bool = False
+    published_date: datetime | None = None
+    modified_date: datetime | None = None
+    affected_products: dict | None = None
+    cwe_ids: dict | None = None
+    exploit_available: bool = False
+    exploit_maturity: str | None = None
+
+
 class CVERiskOut(_CamelBase):
     cve_id: str
     bwvs_score: float

@@ -758,7 +758,7 @@ export default function ContexaSOC() {
     try {
       const encoded = encodeURIComponent(riskName);
       const res = await fetch(
-        `${apiRoot}/api/agents/analyze/demo?risk_title=${encoded}&agents=analyst&agents=intel&agents=forensics&agents=business&agents=response`,
+        `${apiRoot}/api/agents/analyze/demo?risk_title=${encoded}&agents=analyst,intel,forensics,business,response`,
         { method: "POST", headers: { "Content-Type": "application/json" } }
       );
       if (res.ok) {
@@ -784,20 +784,20 @@ export default function ContexaSOC() {
     let cancelled = false;
     async function fetchRecent() {
       try {
-        const res = await fetch(`${API_BASE}/dashboard/recent-activity?limit=10`);
+        const res = await fetch(`${API_BASE}/dashboard/recent-activity?limit=30`);
         if (!res.ok) throw new Error(res.statusText);
         const data = await res.json();
         if (cancelled) return;
         const list = Array.isArray(data) ? data : (data.items || data.data || []);
         setThreats(list.map((x) => ({
           id: x.id,
-          type: x.event_type || x.type || "incident",
+          type: x.title || x.eventType || x.event_type || "incident",
           severity: (x.severity || "MEDIUM").toUpperCase(),
-          src: "—",
+          src: x.eventType || x.event_type || "—",
           dst: "—",
           port: null,
           bwvs: 0,
-          ts: x.created_at || new Date().toISOString(),
+          ts: x.createdAt || x.created_at || new Date().toISOString(),
           status: x.status || "—",
           agent: "—",
           cve: null,
@@ -822,28 +822,30 @@ export default function ContexaSOC() {
         if (cancelled) return;
         const items = data.items || data.data || [];
         setCves(items.map((c) => {
-          const score = c.bwvs_score != null ? c.bwvs_score : (c.cvss_score || 0) * 10;
+          const score = c.bwvsScore ?? c.bwvs_score ?? ((c.cvssScore ?? c.cvss_score ?? 0) * 10);
           let severity = "MEDIUM";
           if (score >= 80) severity = "CRITICAL";
           else if (score >= 60) severity = "HIGH";
           else if (score >= 40) severity = "MEDIUM";
           else severity = "LOW";
           return {
-            id: c.id || c.cve_id,
-            product: (c.affected_software || c.affected_products)?.[0] || "Unknown",
-            cvss: (c.cvss_score != null ? c.cvss_score : score / 10),
+            id: c.id || c.cveId || c.cve_id,
+            product: "Unknown",
+            cvss: c.cvssScore ?? c.cvss_score ?? (score / 10),
             severity,
-            kev: c.is_kev || c.kev || false,
+            kev: c.isKev ?? c.is_kev ?? false,
             desc: c.description || "",
-            published: c.published_date ? new Date(c.published_date).toLocaleDateString() : "N/A",
+            published: (c.publishedDate || c.published_date) ? new Date(c.publishedDate || c.published_date).toLocaleDateString() : "N/A",
           };
         }));
+        const kevCount = items.filter((i) => (i.isKev ?? i.is_kev ?? false)).length;
+        const critCount = items.filter((i) => (i.bwvsScore ?? i.bwvs_score ?? 0) >= 80).length;
         setCveStats({
           total: data.total ?? items.length,
-          critical: data.critical ?? 0,
-          high: data.high ?? 0,
-          exploited: data.kev ?? 0,
-          kev: data.kev ?? items.filter((i) => i.is_kev).length,
+          critical: critCount,
+          high: items.filter((i) => { const s = i.bwvsScore ?? i.bwvs_score ?? 0; return s >= 60 && s < 80; }).length,
+          exploited: kevCount,
+          kev: kevCount,
         });
       } catch {
         if (!cancelled) setCves([]);
@@ -865,16 +867,16 @@ export default function ContexaSOC() {
         if (cancelled) return;
         const list = data.items || data.data || [];
         setBlocks(list.map((b) => {
-          const h = b.block_hash || b.hash || "";
-          const p = b.prev_hash || b.previous_hash || b.prev || "";
+          const h = b.blockHash || b.block_hash || b.hash || "";
+          const p = b.prevHash || b.prev_hash || b.prev || "";
           return {
-          hash: h.slice(0, 16) + (h.length > 16 ? "..." : ""),
-          prev: p.slice(0, 12) + (p.length > 12 ? "..." : ""),
-          op: b.event_type || b.event || b.op || "—",
-          actor: (b.payload && b.payload.actor) || b.actor || "system",
-          ts: b.created_at || b.timestamp || new Date().toISOString(),
-          verified: true,
-        };
+            hash: h.slice(0, 16) + (h.length > 16 ? "..." : ""),
+            prev: p.slice(0, 12) + (p.length > 12 ? "..." : ""),
+            op: b.eventType || b.event_type || b.op || "—",
+            actor: b.entityId || b.entity_id || (b.payload && b.payload.actor) || "system",
+            ts: b.createdAt || b.created_at || new Date().toISOString(),
+            verified: true,
+          };
         }));
       } catch {
         if (!cancelled) setBlocks([]);
@@ -896,9 +898,18 @@ export default function ContexaSOC() {
         if (cancelled) return;
         const list = Array.isArray(data) ? data : (data.items || data.data || []);
         const colors = [C.red, C.orange, C.purple, C.yellow];
+        const tc = (p) => {
+          const cond = p.triggerConditions || p.trigger_conditions;
+          if (!cond) return "—";
+          if (typeof cond === "string") return cond;
+          const parts = [];
+          if (cond.severity) parts.push(cond.severity.join(", "));
+          if (cond.attack_types) parts.push(cond.attack_types.join(", "));
+          return parts.join(" · ") || JSON.stringify(cond).slice(0, 50);
+        };
         setPlaybooks(list.map((p, i) => ({
           name: p.name || p.id || "Playbook",
-          trigger: typeof p.trigger_conditions === "string" ? p.trigger_conditions : (p.trigger_conditions?.severity?.[0] || JSON.stringify(p.trigger_conditions || {}).slice(0, 40) || "—"),
+          trigger: tc(p),
           color: colors[i % colors.length],
           steps: (p.steps || []).map((s) => ({
             step: s.name || `Step ${s.id}`,
