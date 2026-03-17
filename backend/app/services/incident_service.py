@@ -26,6 +26,18 @@ from app.ledger import ledger
 
 logger = logging.getLogger(__name__)
 
+
+def _resolve_topology_node(asset) -> str | None:
+    """Map an Asset ORM object to its corresponding topology node ID via IP address."""
+    if not asset or not asset.ip_address:
+        return None
+    graph = digital_twin._graph
+    for node_id, data in graph.nodes(data=True):
+        if data.get("ip_address") == asset.ip_address:
+            return node_id
+    return None
+
+
 analyst_agent = AnalystAgent()
 intel_agent = IntelAgent()
 forensics_agent = ForensicsAgent()
@@ -109,13 +121,14 @@ async def run_analysis(
         )
     )
 
-    # 5. Generate consensus (pure Python)
+    # 5. Generate consensus (pure Python, with context fallback for agent errors)
     consensus = orchestrator.generate_consensus(
         analyst=analyst_result,
         intel=intel_result,
         forensics=forensics_result,
         business=business_result,
         response=response_result,
+        ctx=ctx,
     )
 
     # 6. Append ledger: consensus_generated
@@ -136,10 +149,14 @@ async def run_analysis(
     )
     bwvs_score = bwvs_result["bwvs_score"]
 
-    # 8. Blast radius if asset linked
+    # 8. Blast radius if asset linked — resolve asset UUID to topology node via IP
     blast_radius_data = None
     if incident.asset_id:
-        blast_radius_data = digital_twin.blast_radius(incident.asset_id)
+        topo_node_id = _resolve_topology_node(incident.asset)
+        if topo_node_id:
+            blast_radius_data = digital_twin.blast_radius(topo_node_id)
+        else:
+            blast_radius_data = digital_twin.blast_radius(incident.asset_id)
 
     # 9. Append ledger: risk_calculated
     await ledger.append(

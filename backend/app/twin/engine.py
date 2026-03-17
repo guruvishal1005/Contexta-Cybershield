@@ -130,8 +130,16 @@ class DigitalTwinEngine:
         )
         risk_score = min(10.0, (len(reachable) * 0.5 + max_crit) * (len(critical) + 1) / 5)
 
+        affected_nodes = [
+            {"id": n, "label": self._graph.nodes[n].get("label", n),
+             "criticality": self._graph.nodes[n].get("criticality", 0),
+             "ip_address": self._graph.nodes[n].get("ip_address")}
+            for n in reachable
+        ]
+
         return {
             "reachable_nodes": sorted(reachable),
+            "affected_nodes": affected_nodes,
             "critical_assets_at_risk": sorted(critical),
             "estimated_lateral_moves": len(reachable),
             "path_count": len(paths),

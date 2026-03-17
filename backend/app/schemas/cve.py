@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict
 from pydantic.alias_generators import to_camel
@@ -23,13 +24,13 @@ class CVEOut(_CamelBase):
     priority_rank: float | None = None
     published_date: datetime | None = None
     modified_date: datetime | None = None
+    affected_products: Any = None
 
 
 class CVEDetailOut(CVEOut):
     cvss_vector: str | None = None
     epss_score: float | None = None
-    affected_products: dict | None = None
-    cwe_ids: dict | None = None
+    cwe_ids: Any = None
     created_at: datetime | None = None
     updated_at: datetime | None = None
 
@@ -43,8 +44,8 @@ class CVECreate(_CamelBase):
     is_kev: bool = False
     published_date: datetime | None = None
     modified_date: datetime | None = None
-    affected_products: dict | None = None
-    cwe_ids: dict | None = None
+    affected_products: Any = None
+    cwe_ids: Any = None
     exploit_available: bool = False
     exploit_maturity: str | None = None
 

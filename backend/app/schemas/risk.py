@@ -1,7 +1,7 @@
 from pydantic import BaseModel, ConfigDict
 from pydantic.alias_generators import to_camel
 
-from app.schemas.cve import CVERiskOut
+from app.schemas.cve import CVERiskOut, CVEOut
 
 
 class _CamelBase(BaseModel):
@@ -29,7 +29,7 @@ class BWVSResultOut(_CamelBase):
 
 
 class TopRisksResponse(BaseModel):
-    risks: list[CVERiskOut]
+    risks: list[CVEOut]
 
 
 class RiskSummaryOut(_CamelBase):

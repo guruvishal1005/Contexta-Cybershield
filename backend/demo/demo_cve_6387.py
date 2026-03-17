@@ -11,6 +11,7 @@ Requires: the backend running on localhost:8000 and the seed data loaded.
 import sys
 import time
 import json
+from datetime import datetime, timezone
 
 import httpx
 
@@ -96,7 +97,7 @@ def main():
             "isKev": False,
             "exploitAvailable": True,
             "exploitMaturity": "proof-of-concept",
-            "publishedDate": "2024-07-01T00:00:00Z",
+            "publishedDate": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
             "affectedProducts": {
                 "vendor": "OpenBSD",
                 "product": "OpenSSH",

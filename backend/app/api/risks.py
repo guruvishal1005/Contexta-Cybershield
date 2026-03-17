@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
 from app.models.cve import CVE
-from app.schemas.cve import CVEOut, CVEDetailOut, CVERiskOut, CVECreate, PaginatedCVEOut
+from app.schemas.cve import CVEOut, CVEDetailOut, CVECreate, PaginatedCVEOut
 from app.schemas.risk import BWVSResultOut, RiskSummaryOut, CVEScoreRequest, TopRisksResponse
 from app.risk_engine.bwvs import BWVSCalculator
 from app.risk_engine.ranking import PriorityRanker
@@ -20,16 +20,7 @@ async def get_top10(db: AsyncSession = Depends(get_db)) -> TopRisksResponse:
         select(CVE).order_by(CVE.priority_rank.desc().nullslast()).limit(10)
     )
     cves = result.scalars().all()
-    risks = [
-        CVERiskOut(
-            cve_id=c.id,
-            bwvs_score=c.bwvs_score or 0.0,
-            risk_level=bwvs_calc.risk_level(c.bwvs_score or 0.0),
-            priority_rank=c.priority_rank or 0.0,
-        )
-        for c in cves
-    ]
-    return TopRisksResponse(risks=risks)
+    return TopRisksResponse(risks=[CVEOut.model_validate(c) for c in cves])
 
 
 @router.get("/summary", response_model=RiskSummaryOut)
